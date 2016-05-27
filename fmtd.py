@@ -579,7 +579,7 @@ def main():
 
     #pyglet.resource.path = ['images', 'sounds', 'fonts', 
     #    'themes/default/images', 'themes/default/fonts']
-    pyglet.resource.path = ['images']
+    pyglet.resource.path = ['resources']
     pyglet.resource.reindex()
 
     # Create the (few) global object
