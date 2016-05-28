@@ -1,0 +1,27 @@
+Hole detection
+	- zombie
+	- runner
+	
+Walls
+	- draw
+	- detect
+	- handle
+	
+Zombie Damage
+	- Detection
+	- Score
+	
+Motion
+	- Zombie lurch
+	- Runner ?
+	
+Sound
+	- pyglet 1.2 required?
+	- when?
+	
+Game Play
+	- Stages: zombie count & speed, field config
+	- Intro?
+	- Death effects
+	- Score board
+	
