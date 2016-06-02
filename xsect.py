@@ -106,6 +106,9 @@ class Move(object):
 
     def submove(self, startParam, endParam):
         return Move( self.atParameter(startParam), self.atParameter(endParam))
+
+    def __repr__(self):
+        return "Move: from %s to %s" % (self.startPoint, self.endPoint)
         
 
 
@@ -206,7 +209,7 @@ def bounceMoveOffHit( move, hit, rebound = 1.0, velocity = None):
         normal = hit.hitObject.normal
 
     normalLen = move.length * dot(move.direction, normal)
-    pos = lincom(1.0, move.startPoint, -(1.0 + rebound)*normalLen, normal)
+    pos = lincom(1.0, move.endPoint, -(1.0 + rebound)*normalLen, normal)
 
     if velocity:
         normalLen = dot(velocity, normal)
