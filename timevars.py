@@ -321,6 +321,48 @@ class ThrustMotionWithDrag(object):
             self.sy = -self.sy
             self.vy *= -1.0
 
+class Follower2D(object):
+    """ Vector follows target vector with decaying gap"""
+    def __init__(self):
+        super(Follower2D, self).__init__()
+        self.target = (0.0, 0.0)
+        self.value =  (0.0, 0.0)
+        self.decayRate = 1.0
+
+    def setDecayRate(self, proportion, time, fps):
+        ''' Sets decayRate parameter that dictates how quickly value
+        converges to the target. Should be called once after creation.
+
+        E.g. - If you want the value to get 90% of the way to the target 
+        value in 0.6 seconds, and you're running at 30 FPS, call
+
+        setDecayRate( 0.90, 0.6, 30)
+
+        A super-accurate version would calculate the rate each time update() 
+        is called, based on the dt value, but to be efficient we'll assume 
+        dt always is 1/FPS
+
+        '''
+        self.decayRate = 1.0 - math.pow(1.0 - proportion, 1.0/(time * fps))
+
+    def setTarget(self, target):
+        self.target = target
+
+    def setValue(self, value):
+        ''' setValue() is only called in excpetional situations,
+        e.g. when external forces determine a value, 
+        like bouncing into a wall.'''
+        self.value = value
+
+    def getValue(self):
+        return self.value
+
+    def update(self, dt):
+        x = (1.0-self.decayRate)*self.value[0] + self.decayRate * self.target[0]
+        y = (1.0-self.decayRate)*self.value[1] + self.decayRate * self.target[1]
+
+        self.value = (x,y)
+
 
 class TargetTracker(object):
     """

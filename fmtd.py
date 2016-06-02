@@ -20,9 +20,13 @@ import xsect
 
 gApp = None
 gAssets = None
-
+FPS = 30.0
 
 # Define the application class
+
+# Objects that just hold a bunch of attributes
+class Attributes(object):
+    pass
 
 class Application(object):
     """
@@ -55,6 +59,7 @@ class WindowProps(object):
     def __init__(self):
         pass
 
+
 class GameWindow(pyglet.window.Window):
     """A single window with a game taking place inside it"""
     
@@ -68,7 +73,10 @@ class GameWindow(pyglet.window.Window):
         self.set_vsync(True)
         self.set_mouse_visible(False)
 
-        self.joystick = joystick
+        self.userInput = Attributes()
+        self.userInput.joystick = None
+        self.userInput.keys = key.KeyStateHandler()
+        self.userInput.mousePosition = (0,0)
 
         props = WindowProps()
         w = props.windowWidth     = self.width
@@ -87,9 +95,9 @@ class GameWindow(pyglet.window.Window):
 
         self.zombies = []
 
-        self.runner = Runner(w//2, h//2,        maxSpeed)
-        self.zombies.append(Zombie( 100, h//2, 1.05 * maxSpeed))
-        self.zombies.append(Zombie( 600, h//2, 1.05 * maxSpeed))
+        #self.runner = Runner(w//2, h//2,        maxSpeed)
+        self.zombies.append(Zombie( 100, h//2, maxSpeed))
+        self.zombies.append(Zombie( 800, h//2, maxSpeed))
 
         self.grassBatch = pyglet.graphics.Batch()
 
@@ -101,25 +109,35 @@ class GameWindow(pyglet.window.Window):
         self.wallPolygons = xsect.PolygonList()
         brk = gAssets.getImage('brick')
 
-        self.addWall( (400,450), (320,600))
-        self.addWall( (450,900), (550,600))
-        self.addWall( (850,900), (400,600))
+        #self.addWall( (400,450), (320,600))
+        #self.addWall( (450,900), (550,600))
+        #self.addWall( (850,900), (400,600))
 
+        self.addWall( (200,250), (100,400))
+        self.addWall( (600,650), (100,350))
 
-        self.runner = Runner(530, 400,        maxSpeed)
+        self.runner = Runner(530, 400, maxSpeed)
 
         # Window border
-        self.wallPolygons.add(xsect.Polygon((0,0),(w,0),(0,0)))
-        self.wallPolygons.add(xsect.Polygon((0,h),(w,h),(0,h)))
-        self.wallPolygons.add(xsect.Polygon((0,0),(0,0),(0,h)))
-        self.wallPolygons.add(xsect.Polygon((w,0),(w,0),(w,h)))
+        self.wallPolygons.add(xsect.Polygon((0,0),(w,0)))
+        self.wallPolygons.add(xsect.Polygon((w,0),(w,h)))
+        self.wallPolygons.add(xsect.Polygon((w,h),(0,h)))
+        self.wallPolygons.add(xsect.Polygon((0,h),(0,0)))
 
 
-        self.keys = key.KeyStateHandler()
-        self.push_handlers(self.keys)
+        #self.keys = key.KeyStateHandler()
+        #self.push_handlers(self.keys)
+        self.push_handlers(self.userInput.keys)
+        
 
         # I think extending Window automatically has this as a handler
         #self.push_handlers(self.on_key_press)
+
+        self.push_handlers(self.on_mouse_motion)
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        #print "on_mouse_motion", x, y, dx, dy
+        self.userInput.mousePosition = (x,y)
 
     def addWall(self, xRange, yRange):
         brk = gAssets.getImage('brick')
@@ -169,7 +187,7 @@ class GameWindow(pyglet.window.Window):
 
     def on_key_press(self, symbol, modifiers):
         #print "GameWindow.on_key_press", symbol
-        if self.keys[key.Q]:
+        if self.userInput.keys[key.Q]:
             pyglet.app.exit()        
         
     def update(self, dt):
@@ -184,36 +202,17 @@ class GameWindow(pyglet.window.Window):
 
 
         # Use controls to update the ship.
-        if self.joystick is not None:
+        if self.userInput.joystick is not None:
             self.joystickUpdate(dt)
         else:
             self.keyboardUpdate(dt)
 
 
     def joystickUpdate(self, dt):
-        js = self.joystick
-        self = self.gameElements
-
-        g.runner.shift(3*js.rx, -3*js.ry)
-
+        pass
 
     def keyboardUpdate(self, dt):
-        # Use keyboard to control ship
-        g = self.gameElements
-        dx, dy = 0, 0
-
-        if self.keys[key.LEFT]:
-            dx = -1
-        if self.keys[key.RIGHT]:
-            dx = +1
-        
-        if self.keys[key.UP]:
-            dy = +1
-        if self.keys[key.DOWN]:
-            dy = -1
-
-        self.runner.update(dt, (dx, dy), self.wallPolygons)
-
+        self.runner.update(dt, self.userInput, self.wallPolygons)
 
     def on_draw(self):
         grey = 0.9
@@ -238,6 +237,7 @@ class GameWindow(pyglet.window.Window):
         self.runner.on_draw()
         for z in self.zombies:
             z.on_draw()
+            pass
 
         
         gl.glPopMatrix()
@@ -258,6 +258,7 @@ class GameAssets(object):
         self.loadStdImage('zombie-sprite-right.png', 'zombie-right')
         self.loadStdImage('zombie-sprite-left.png', 'zombie-left')
         #self.loadStdImage('foob2.png', 'zombie')
+        self.loadStdImage('target-32.png', 'target')
 
         img = self.loadStdImage('Grass-036-10pct.jpg', 'grass')
         img.anchor_x = 0
@@ -300,10 +301,12 @@ class GameElements(object):
     def update(self, dt):
         pass
 
-class Runner(pyglet.sprite.Sprite):
+class Runner(object):
 
     def __init__(self, x, y, maxSpeed):
-        super(Runner, self).__init__(gAssets.getImage('runner'), x,y)
+        super(Runner, self).__init__()
+        self.sprite = pyglet.sprite.Sprite(gAssets.getImage('runner'), x,y)
+        self.targetSprite = pyglet.sprite.Sprite(gAssets.getImage('target'))
         # These are floating point numbers for motion simulation. 
         # Assign them to the underlying Sprite's x & y before drawing.
         self.xPos = x
@@ -314,21 +317,39 @@ class Runner(pyglet.sprite.Sprite):
         self.motion.setDrag(0.05)
         self.thrustPower = 400.0    # units?
 
+        # Data for moving with mouse position targeting
+        self.targetPosition = (0,0)
+        self.targetFollower = tv.Follower2D()
+        self.targetFollower.setDecayRate(0.9, 0.5, FPS)
+        #self.targetFollower.setDecayRate(0.99, 0.1, FPS)
+
+        self.targetVelocityFollower = tv.Follower2D()
+        self.targetVelocityFollower.setDecayRate(0.95, 0.3, FPS)
 
     def getRadius(self):
-        return self.width//2
+        return self.sprite.width//2
 
     def getVelocity(self):
         return self.motion.velocity()
 
-    def on_draw(self):
-        self.x = self.xPos
-        self.y = self.yPos
-        self.draw()
+    def getPosition(self):
+        return (self.xPos, self.yPos)
 
-    def getDesiredMove(self, dt, (dx,dy)):
+    def on_draw(self):
+        self.sprite.x = self.xPos
+        self.sprite.y = self.yPos
+        self.sprite.draw()
+
+        self.targetSprite.x = self.targetPosition[0]
+        self.targetSprite.y = self.targetPosition[1]
+        self.targetSprite.draw()
+
+    def getDesiredMoveSpaceship(self, dt, userInput):
+        ''' Using the same motion as spaceship in meteor '''
         x, y = self.motion.position()
         start = (x,y)
+
+        dx, dy = readArrowKeys(userInput.keys)
 
         ds = self.thrustPower * dt
         self.motion.thrust( ds * dx, ds * dy)
@@ -338,14 +359,50 @@ class Runner(pyglet.sprite.Sprite):
 
         return start, end
 
-    def getDesiredMove1(self, dt, (dx,dy)):
+    def getDesiredMoveBasic(self, dt, userInput):
+        ''' Simple constant speed moving '''
         start = (self.xPos, self.yPos)
+        dx, dy = readArrowKeys(userInput.keys)
+
         end = (self.xPos + dt * self.maxSpeed * dx, self.yPos + dt * self.maxSpeed * dy)
 
         return start, end
 
-    def update(self, dt, (dx,dy), walls):
-        start, end = self.getDesiredMove(dt, (dx, dy))
+    def getDesiredMoveTargeted(self, dt, userInput):
+        start = (self.xPos, self.yPos)
+
+        self.targetFollower.setTarget(self.targetPosition)
+        self.targetFollower.update(dt)
+
+        end = self.targetFollower.getValue()
+
+        return start, end
+
+    def getDesiredMoveTargetedVelocity(self, dt, userInput):
+        start = (self.xPos, self.yPos)
+
+        speed = 0.70 * self.maxSpeed
+        keys = userInput.keys
+        if keys[key.R]:
+            speed = 1.04 * self.maxSpeed
+
+
+        t = xsect.vecMinus(self.targetPosition, start)
+        targetDir, targetDistance = xsect.polarizeVector(t)
+        self.targetVelocityFollower.setTarget( 
+            (speed*targetDir[0], speed*targetDir[1]) )
+
+        self.targetVelocityFollower.update(dt)
+        velocity = self.targetVelocityFollower.getValue()
+
+        end = (self.xPos + dt*velocity[0], self.yPos + dt*velocity[1])
+
+        return start, end
+
+    def update(self, dt, userInput, walls):
+        self.targetPosition = userInput.mousePosition
+
+        start, end = self.getDesiredMoveTargetedVelocity(dt, userInput)
         move = xsect.Move(start, end)
         velocity = None
 
@@ -357,6 +414,7 @@ class Runner(pyglet.sprite.Sprite):
             if not hits:
                 self.xPos = move.endPoint[0]
                 self.yPos = move.endPoint[1]
+                self.targetFollower.setValue(move.endPoint)
 
                 if velocity:
                     self.motion.set(position=move.endPoint, velocity=velocity)
@@ -368,7 +426,7 @@ class Runner(pyglet.sprite.Sprite):
             move = move.submove(hit.moveParameter - 0.0001, 1.0)
             velocity = self.getVelocity()
 
-            move, velocity = xsect.bounceMoveOffHit( move, hit, velocity=velocity, rebound=0.35)
+            move, velocity = xsect.bounceMoveOffHit( move, hit, velocity=velocity, rebound=0.0)
 
 
 #class Zombie(pyglet.sprite.Sprite):
@@ -396,10 +454,10 @@ class Zombie(object):
         self.stepSpeed = None
         self.stepSpeedFactorCurve = tv.PLInterpolator((
             (0.0,0.3),
-            (self.stepCycleTime * 0.3, 1.7),
-            (self.stepCycleTime * 0.6, 1.1),
-            (self.stepCycleTime, 1.3),
-            (1000.0, 1.3)
+            (self.stepCycleTime * 0.3, 1.0),
+            (self.stepCycleTime * 0.7, 0.9),
+            (self.stepCycleTime      , 0.8),
+            (1000.0, 0.6)
         ))
 
         #self.rotation = 180.0
@@ -417,6 +475,7 @@ class Zombie(object):
         self.activeSprite.draw()
 
     def update(self, dt, walls):
+
         self.stepTime += dt
         if self.stepTime > self.stepCycleTime:
             # Calculate new move
@@ -553,6 +612,21 @@ def getJoystickPolarRight(js):
 
     return math.sqrt(r2), th
 
+def readArrowKeys(keys):
+    dx, dy = 0, 0
+
+    if keys[key.LEFT]:
+        dx = -1
+    if keys[key.RIGHT]:
+        dx = +1
+    
+    if keys[key.UP]:
+        dy = +1
+    if keys[key.DOWN]:
+        dy = -1
+
+    return (dx, dy)
+
 def clamp(low, val, high):
     if val >= high:
         return high
@@ -589,8 +663,8 @@ def main():
     gApp = Application(windowOpts)
 
 
-    pyglet.clock.set_fps_limit(60)
-    pyglet.clock.schedule_interval(update, 1/60.)
+    pyglet.clock.set_fps_limit(FPS)
+    pyglet.clock.schedule_interval(update, 1/FPS)
 
     pyglet.app.run()
 
