@@ -333,7 +333,7 @@ class Follower2D(object):
         ''' Sets decayRate parameter that dictates how quickly value
         converges to the target. Should be called once after creation.
 
-        E.g. - If you want the value to get 90% of the way to the target 
+        E.g. - If you want the value to get 90 pct. of the way to the target 
         value in 0.6 seconds, and you're running at 30 FPS, call
 
         setDecayRate( 0.90, 0.6, 30)

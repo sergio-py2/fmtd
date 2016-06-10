@@ -25,3 +25,13 @@ Game Play
 	- Death effects
 	- Score board
 	
+
+General links:
+http://aodj.ghost.io/isolation-in-practice-part-2/
+http://www.thebrokendesk.com/post/using-wx-python-in-a-virtual-environment/
+https://groups.google.com/forum/#!topic/wxpython-users/TccOCwAB0zY
+https://www.metachris.com/2015/11/create-standalone-mac-os-x-applications-with-python-and-py2app/
+https://pythonhosted.org/py2app/
+https://medium.com/@acidflask/this-guys-arrogance-takes-your-breath-away-5b903624ca5f#.ilsrwfdcd
+
+	
