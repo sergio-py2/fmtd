@@ -17,6 +17,7 @@ import timevars as tv
 #import vector as v
 
 import xsect
+import countdowntimer
 
 gApp = None
 gAssets = None
@@ -113,10 +114,11 @@ class GameWindow(pyglet.window.Window):
         #self.addWall( (450,900), (550,600))
         #self.addWall( (850,900), (400,600))
 
-        self.addWall( (200,250), (100,400))
-        self.addWall( (600,650), (100,350))
+        #self.addWall( (200,250), (100,400))
+        #self.addWall( (600,650), (100,350))
 
         self.runner = Runner(530, 400, maxSpeed)
+        self.countdowntimer = countdowntimer.CountDownTimer(110)
 
         # Window border
         self.wallPolygons.add(xsect.Polygon((0,0),(w,0)))
@@ -192,6 +194,7 @@ class GameWindow(pyglet.window.Window):
         
     def update(self, dt):
         g = self.gameElements
+        keys = self.userInput.keys
 
         # Elements that evolve pretty much by themselves.
         g.update(dt)
@@ -207,6 +210,15 @@ class GameWindow(pyglet.window.Window):
         else:
             self.keyboardUpdate(dt)
 
+        timer = self.countdowntimer
+        if keys[key.SPACE]:
+            if timer.isStopped():
+                timer.startRunUp()
+            elif timer.readyToStart:
+                timer.startCountDown()
+
+        self.countdowntimer.update(dt)
+
 
     def joystickUpdate(self, dt):
         pass
@@ -215,10 +227,20 @@ class GameWindow(pyglet.window.Window):
         self.runner.update(dt, self.userInput, self.wallPolygons)
 
     def on_draw(self):
-        grey = 0.9
-        gl.glClearColor(grey, grey, grey, 0.0)
+        gl.glEnable( gl.GL_POLYGON_SMOOTH )
+        #gl.glHint( gl.GL_POLYGON_SMOOTH_HINT, gl.GL_NICEST ) 
+        gl.glHint( gl.GL_POLYGON_SMOOTH_HINT, gl.GL_DONT_CARE ) 
+
+        gl.glEnable( gl.GL_LINE_SMOOTH )
+
+        gl.glEnable(gl.GL_MULTISAMPLE)
+
         gl.glEnable( gl.GL_BLEND)
         gl.glBlendFunc( gl.GL_SRC_ALPHA, gl.GL_ONE_MINUS_SRC_ALPHA)
+        #gl.glBlendFunc( gl.GL_SRC_ALPHA_SATURATE, gl.GL_ONE)
+
+        grey = 0.9
+        gl.glClearColor(grey, grey, grey, 0.0)
 
         gl.glPushMatrix()
 
@@ -227,8 +249,8 @@ class GameWindow(pyglet.window.Window):
         #gl.glTranslatef(-self.viewportOrigin[0], -self.viewportOrigin[1], 0.0)
         
         self.clear()
-        self.grassBatch.draw()
-        self.wallImgBatch.draw()
+        #self.grassBatch.draw()
+        #self.wallImgBatch.draw()
 
         g = self.gameElements
 
@@ -236,8 +258,15 @@ class GameWindow(pyglet.window.Window):
 
         self.runner.on_draw()
         for z in self.zombies:
-            z.on_draw()
+            #z.on_draw()
             pass
+        
+
+        gl.glPushMatrix()
+        gl.glTranslatef(300, 300, 0.0)
+        #gl.glScalef(1.2, 1.2, 0.0)
+        self.countdowntimer.draw()
+        gl.glPopMatrix()
 
         
         gl.glPopMatrix()
@@ -321,10 +350,11 @@ class Runner(object):
         self.targetPosition = (0,0)
         self.targetFollower = tv.Follower2D()
         self.targetFollower.setDecayRate(0.9, 0.5, FPS)
-        #self.targetFollower.setDecayRate(0.99, 0.1, FPS)
+        #self.targetFollower.setDecayRate(0.01, 50.0, FPS)
 
         self.targetVelocityFollower = tv.Follower2D()
         self.targetVelocityFollower.setDecayRate(0.95, 0.3, FPS)
+        #self.targetVelocityFollower.setDecayRate(0.5, 1.3, FPS)
 
     def getRadius(self):
         return self.sprite.width//2
@@ -389,13 +419,25 @@ class Runner(object):
 
         t = xsect.vecMinus(self.targetPosition, start)
         targetDir, targetDistance = xsect.polarizeVector(t)
+
+        # When position is very near the target (< 1 pixel), direction to move
+        # gets crazy, so we'll just jump to the desired position
+        if targetDistance < 1:
+            end = self.targetPosition
+            return start, end
+
         self.targetVelocityFollower.setTarget( 
             (speed*targetDir[0], speed*targetDir[1]) )
 
         self.targetVelocityFollower.update(dt)
         velocity = self.targetVelocityFollower.getValue()
 
-        end = (self.xPos + dt*velocity[0], self.yPos + dt*velocity[1])
+        #end = (self.xPos + dt*velocity[0], self.yPos + dt*velocity[1])
+
+        # Don't overshoot when moving near target point
+        moveDir, moveDirMax = xsect.polarizeVector(velocity)
+        moveDistance = min(moveDirMax*dt, targetDistance)
+        end = (self.xPos + moveDistance * moveDir[0], self.yPos + moveDistance * moveDir[1])
 
         return start, end
 
@@ -646,10 +688,22 @@ def main():
     global gApp
     global gAssets
 
+    #platform = pyglet.window.get_platform()
+    #display = platform.get_default_display()
+    #screen = display.get_default_screen()
+
+    #for config in screen.get_matching_configs(gl.Config()):
+    #    print config
+
+    #config = pyglet.gl.Config(sample_buffers=1, samples=2)
+    #config = pyglet.gl.Config()
+    
     if len(sys.argv) > 1 and sys.argv[1] == '-f':
         windowOpts = {'fullscreen': True}
+        #windowOpts = {'fullscreen': True, 'config':config}
     else:
         windowOpts = {'width': 1000, 'height': 500}
+        #windowOpts = {'width': 1000, 'height': 500, 'config':config}
 
     #pyglet.resource.path = ['images', 'sounds', 'fonts', 
     #    'themes/default/images', 'themes/default/fonts']
