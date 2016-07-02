@@ -103,7 +103,7 @@ class PLInterpolator(object):
         # t between nodes i-1 and i
         a = self.nodes[i-1]
         b = self.nodes[i]
-        t = (t - a[0]) / (b[0] - a[0])
+        t = (t - a[0]) / float(b[0] - a[0])
         v = a[1] + t * (b[1] - a[1])
         return v
 
@@ -349,7 +349,7 @@ class Follower2D(object):
         self.target = target
 
     def setValue(self, value):
-        ''' setValue() is only called in excpetional situations,
+        ''' setValue() is only called in exceptional situations,
         e.g. when external forces determine a value, 
         like bouncing into a wall.'''
         self.value = value
