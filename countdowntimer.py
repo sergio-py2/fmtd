@@ -1,6 +1,7 @@
 #!python  -u
 
 import math
+import colorsys
 
 import pyglet
 import pyglet.gl as gl
@@ -20,6 +21,28 @@ class CountDownTimer(object):
 
         self.startTime = seconds
         self.currTime = 0.0
+
+        self.rCurve = tv.PLInterpolator(((0,255), (0.1*seconds, 255), (0.5*seconds,0), (seconds,0)))
+        self.gCurve = tv.PLInterpolator(((0,0), (0.1*seconds, 48), (0.5*seconds,255), (seconds,255)))
+        self.bCurve = tv.PLInterpolator(((0,0), (seconds/2.0, 0), (seconds,0)))
+        self.hueCurve = tv.PLInterpolator((
+            (0,12), 
+            (0.04 * seconds, 12), 
+            (0.12 * seconds, 60),
+            (0.20 * seconds, 60),
+            (0.33 * seconds, 140),
+            (seconds,140)))
+
+        self.lightnessCurve = tv.PLInterpolator((
+            (0, 50),
+            (0.20 * seconds, 50),
+            (0.33 * seconds, 30),
+            (seconds, 30)
+            ))
+
+        # hsl(140, 100%, 30%) green
+        # hsl(60, 100%, 50%) yellow
+        # hsl(12, 100%, 50%) red
 
         self.arcGranularityDeg = 6
 
@@ -126,10 +149,10 @@ class CountDownTimer(object):
 
 
     def makeSweep(self):
-        #radiusCurve = tv.PLInterpolator(( (0,34), (60,42), (120,50)))
+        radiusCurve = tv.PLInterpolator(( (0,34), (60,42), (120,50)))
         #radiusCurve = tv.PLInterpolator(( (0,10), (60,38), (120,50)))
         #radiusCurve = tv.PLInterpolator(( (0,50), (60,42), (120,34)))
-        radiusCurve = tv.PLInterpolator(( (0,50), (60,50), (120,50)))
+        #radiusCurve = tv.PLInterpolator(( (0,50), (60,50), (120,50)))
         widthCurve  = tv.PLInterpolator(( (0,2),  (120,2)))
 
         handAngle = self.currTime * 6.0
@@ -146,11 +169,22 @@ class CountDownTimer(object):
 
             r = radiusCurve(sec)
             w = widthCurve(sec)
+
+            hue = self.hueCurve(sec)
+            lightness = self.lightnessCurve(sec)
+            (red, green, blue) = colorsys.hls_to_rgb(hue/360.0, lightness/100.0, 1.0)
+
+
+
+            #red = self.rCurve(sec)
+            #green = self.gCurve(sec)
+            #blue = self.bCurve(sec)
             #print sec, r, w
             
             verts += [(r-w) * c, (r-w)*s]
             verts += [(r+w) * c, (r+w)*s]
-            colors += [120,120,120] * 2
+            #colors += [120,120,120] * 2
+            colors += [int(255*red),int(255*green),int(255*blue)] * 2
 
         if self.sweep:
             self.sweep.delete()
