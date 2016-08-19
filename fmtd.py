@@ -264,7 +264,7 @@ class GameWindow(pyglet.window.Window):
 
         gl.glPushMatrix()
         gl.glTranslatef(300, 300, 0.0)
-        #gl.glScalef(1.2, 1.2, 0.0)
+        #gl.glScalef(0.5, 0.5, 0.0)
         self.countdowntimer.draw()
         gl.glPopMatrix()
 
@@ -494,13 +494,12 @@ class Zombie(object):
         self.stepCycleTime = 0.4
         self.stepDir = None
         self.stepSpeed = None
-        self.stepSpeedFactorCurve = tv.PLInterpolator((
+        self.stepSpeedFactorCurve = tv.PLInterpolator(
             (0.0,0.3),
             (self.stepCycleTime * 0.3, 1.0),
             (self.stepCycleTime * 0.7, 0.9),
             (self.stepCycleTime      , 0.8),
-            (1000.0, 0.6)
-        ))
+            (1000.0, 0.6))
 
         #self.rotation = 180.0
 

@@ -82,8 +82,7 @@ class Blinker(object):
     def isOn(self):
         return self.state
 
-
-class PLInterpolator(object):
+class PLInterpolator0(object):
     """ Piece-wise linear interpolator. Not really a time-varying value,
         this seems like a sensible place to put it. 
     """
@@ -91,7 +90,7 @@ class PLInterpolator(object):
     # Change init to take *nodes, not a single nodes List!
     # (API change. Will need to update client code)
     def __init__(self, nodes):
-        super(PLInterpolator, self).__init__()
+        super(PLInterpolator0, self).__init__()
         self.nodes = nodes
 
     def __call__(self, t):
@@ -106,6 +105,49 @@ class PLInterpolator(object):
         t = (t - a[0]) / float(b[0] - a[0])
         v = a[1] + t * (b[1] - a[1])
         return v
+
+class PLInterpolator(object):
+    """ Piece-wise linear interpolator. Not really a time-varying value,
+        this seems like a sensible place to put it. 
+        Each node is a (parameter, value) pair.
+        Values can be numbers, tuples, or lists
+    """
+    
+    def __init__(self, *nodes):
+        super(PLInterpolator, self).__init__()
+        self.nodes = nodes
+
+        # Figure out if value types are iterable, and record their class if so.
+        firstVal = nodes[0][1]
+        self.valueIsIterable = False
+        try:
+            _ = (x for x in firstVal)
+            self.valueIsIterable = True
+            self.valueClass = type(firstVal)
+        except:
+            pass
+
+    def __call__(self, t):
+        # User is responsible for keeping t within range.
+        i = 0
+        while self.nodes[i][0] < t:
+            i += 1
+
+        # t between nodes i-1 and i
+        aParam, aVal = self.nodes[i-1]
+        bParam, bVal = self.nodes[i]
+
+        # Re-scale t to between a and b
+        t = (t - aParam) / float(bParam - aParam)
+
+        if not self.valueIsIterable:
+            v = aVal + t * (bVal - aVal)
+            return v
+        else:
+            gen = (a + t * (b - a) for (a,b) in zip(aVal, bVal))
+            # Use the value class's constructor to convert the sequence of
+            # generated numbers to the same type as the values originally given.
+            return self.valueClass(gen)
 
     def shift(self, xShift, yShift):
         for i, pt in enumerate(self.nodes):
